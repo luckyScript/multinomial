@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+    </head>
+    <body>
+        <textarea style="height:120px;" placeholder="输入需要拟合的点，每行一个" id="fitted_points"></textarea>
+        <div class='row'>
+      		<button type="button" class='button primary small' onclick="javascript:fitted_curve();">拟合输入结果</button>
+      		<button type="button" class='button success small' onclick="javascript:random_point();">随机测试数据</button>
+      	</div>
+      	<div class="alert success">
+        	函数方程表达式为：<span class="strong green"><a id="function_str"></a></span>
+        </div>
+        <script type="text/javascript">
+        function $_(id) {
+        	return document.getElementById(id);
+        }
+        String.prototype.trim = function() {
+		     return this.replace(/(^\s*)|(\s*$)/g, "");
+		}
+
+        // 取得用户输入
+		function _input_2_point_array(input_points) {
+			try {
+        		var input_array = input_points.split("\n");
+        		// console.log(input_array);
+        		var tmp = null;
+        		var point_array = [];
+        		for (var i = 0; i < input_array.length; i++) {
+        			tmp = input_array[i].split(',')
+        			if (tmp && tmp.length == 2) {
+        				point_array.push({'x': parseFloat(tmp[0].trim()), 'y': parseFloat(tmp[1].trim())});
+        			}
+        			// 不符合要求忽略
+        		};
+        		return point_array;
+			} catch(e) {
+				console.log(e);
+				return false;
+			}
+		}
+
+        var inputMatrix = [];
+		function polyfit(userInput) {
+			var returnResult = [];
+			inputMatrix = [];
+			var n = userInput.length;
+			for (var i = 0; i < n; i++) {
+				var tempArr = [];
+				for (var j = 0; j < n; j++) {
+					tempArr.push(Math.pow(userInput[i].x, n - j - 1));
+				}
+				tempArr.push(userInput[i].y);
+				inputMatrix.push(tempArr);
+			}
+			for (var i = 0; i < n; i++) {
+				var base = inputMatrix[i][i];
+				for (var j = 0; j < n + 1; j++) {
+					if (base == 0) {
+						//存在相同x不同y的点，无法使用多项式进行拟合
+						return false;
+					}
+					inputMatrix[i][j] = inputMatrix[i][j] / base;
+				}
+				for (var j = 0; j < n; j++) {
+					if (i != j) {
+						var baseInner = inputMatrix[j][i];
+						for (var k = 0; k < n + 1; k++) {
+							inputMatrix[j][k] = inputMatrix[j][k] - baseInner * inputMatrix[i][k];
+						}
+					}
+				}
+			}
+			for (var i = 0; i < n; i++) {
+				if (inputMatrix[i][n] > 0) {
+					returnResult.push('+');
+				}
+
+				if (inputMatrix[i][n] != 0) {
+					var tmp_x = '';
+					for (var j = 0; j < n - 1 - i; j++) {
+						tmp_x = tmp_x + "*x";
+					}
+					returnResult.push((inputMatrix[i][n] + tmp_x));
+				}
+			}
+			return returnResult;
+		}
+
+        function array_2_func_str(r_a) {
+			return r_a.join('');
+		}
+
+		function fitted_curve() {
+			var input_points = $_('fitted_points').value;
+			input_points = _input_2_point_array(input_points);
+			var returnResul = polyfit(input_points);
+			//拟合失败
+			if (returnResul === false) {
+				$_('function_str').innerHTML = 'F(x)无法拟合函数，因为拟合点中存在x值相同，但是y值不相同的点，不符合多项式 x, y 一一对应的规则。';
+			}
+			//拟合成功
+			var func = array_2_func_str(returnResul);
+			$_('function_str').innerHTML = 'F(x) = ' + func;
+			var encode_func = func.replace(new RegExp(/(\+)/g), '%2b');
+		}
+		function random_int(min, max) {
+			var r = Math.ceil(Math.random() * (max - min));
+			return r + min;
+		}
+        function random_point() {
+        	var cnt = random_int(1, 8);
+        	var rst = "";
+        	for (var i = cnt - 1; i >= 0; i--) {
+        		rst = rst + "" + random_int(1, 100) + ", " + "" +  random_int(1, 100) + "\n";
+        	};
+
+        	$_('fitted_points').value = rst;
+        	fitted_curve();
+        }
+        </script>
+    </body>
+</html>
